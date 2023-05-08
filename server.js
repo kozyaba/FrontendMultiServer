@@ -1,11 +1,16 @@
 const express = require('express');
 const httpProxy = require('http-proxy');
+const cors = require('cors');
 const config = require('./config');
+const https = require('https');
+const devcert = require('devcert');
 
 const app = express();
 const port = 8080;
 
 const proxy = httpProxy.createProxyServer();
+
+app.use(cors());
 
 // генерируем роуты на основе конфигурации
 config.proxySettings.forEach(({target}) => {
@@ -45,6 +50,9 @@ app.use('/', (req, res) => {
     proxy.web(req, res, { target: targetUrl, changeOrigin: true });
 });
 
-app.listen(port, () => {
-    console.log(`Proxy server listening at http://localhost:${port}`);
-});
+(async () => {
+    const sslOptions = await devcert.certificateFor('localhost');
+    https.createServer(sslOptions, app).listen(port, () => {
+        console.log(`Proxy server listening at https://localhost:${port}`);
+    });
+})();
